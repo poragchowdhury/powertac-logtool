@@ -1,0 +1,14 @@
+:loop
+	call mvn clean compile exec:exec -Dexec.args="--repeat-count 1000"
+
+goto loop
+
+MktPriceStats
+WholesaleMarketStats
+GameDecomposer
+
+tar xzfO qualifying_2017_05_81.tar.gz log/qualifying_2017_05_81.state | mvn exec:exec -Dexec.args="org.powertac.logtool.example.GameDecomposer - qualifying_2017_05_81.GameDecomposer.csv"
+
+mvn exec:exec -Dexec.args="org.powertac.logtool.example.MktPriceStats "C:\Users\IASRLUser\Desktop\Files\Research\PowerTAC\BitBucket\2017\server-distribution-1.4.2\server-distribution-1.4.2\log\IWON.state" IWON.MktPriceStats.csv"
+
+mvn exec:exec -Dexec.args="org.powertac.logtool.example.TariffSubscriptions 'C:\Users\IASRLUser\Desktop\Files\Research\PowerTAC\BitBucket\2017\server-distribution-1.4.2\server-distribution-1.4.2\log\IWON.state' IWON.TariffSubscriptions.csv"
