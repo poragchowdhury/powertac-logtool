@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017 by John E. Collins
+ * Copyright (c) 2015 by the original author
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,16 +21,19 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
+//import org.apache.log4j.Logger;
+import org.powertac.common.BalancingTransaction;
 import org.powertac.common.Broker;
+import org.powertac.common.Competition;
 import org.powertac.common.TariffTransaction;
 import org.powertac.common.msg.TimeslotUpdate;
 import org.powertac.common.repo.BrokerRepo;
 import org.powertac.common.spring.SpringApplicationContext;
 import org.powertac.logtool.LogtoolContext;
+import org.powertac.logtool.common.DomainObjectReader;
+import org.powertac.logtool.common.NewObjectListener;
 import org.powertac.logtool.ifc.Analyzer;
+import org.powertac.util.Pair;
 
 /**
  * Example analysis class.
@@ -48,7 +51,9 @@ public class TariffMktShare
 extends LogtoolContext
 implements Analyzer
 {
-  static private Logger log = LogManager.getLogger(TariffMktShare.class.getName());
+//  static private Logger log = Logger.getLogger(TariffMktShare.class.getName());
+
+  private DomainObjectReader dor;
 
   private BrokerRepo brokerRepo;
 
@@ -102,13 +107,19 @@ implements Analyzer
   @Override
   public void setup ()
   {
+    //dor = (DomainObjectReader) SpringApplicationContext.getBean("reader");
     brokerRepo = (BrokerRepo) SpringApplicationContext.getBean("brokerRepo");
     ttx = new ArrayList<TariffTransaction>();
+
+    registerNewObjectListener(new TimeslotUpdateHandler(),
+                                  TimeslotUpdate.class);
+    registerNewObjectListener(new TariffTxHandler(),
+                                  TariffTransaction.class);
     try {
       data = new PrintWriter(new File(dataFilename));
     }
     catch (FileNotFoundException e) {
-      log.error("Cannot open file " + dataFilename);
+//      log.error("Cannot open file " + dataFilename);
     }
   }
 
@@ -169,19 +180,29 @@ implements Analyzer
 
   // -----------------------------------
   // catch TariffTransactions
-  public void handleMessage (TariffTransaction tx)
+  class TariffTxHandler implements NewObjectListener
   {
-    // only include SIGNUP and WITHDRAW
-    if (tx.getTxType() == TariffTransaction.Type.SIGNUP ||
-        tx.getTxType() == TariffTransaction.Type.WITHDRAW) {
-      ttx.add(tx);
-    }
-  } 
+    @Override
+    public void handleNewObject (Object thing)
+    {
+      TariffTransaction tx = (TariffTransaction)thing;
+      // only include SIGNUP and WITHDRAW
+      if (tx.getTxType() == TariffTransaction.Type.SIGNUP ||
+          tx.getTxType() == TariffTransaction.Type.WITHDRAW) {
+        ttx.add(tx);
+      }
+    } 
+  }
 
   // -----------------------------------
   // catch TimeslotUpdate events
-  public void handleMessage (TimeslotUpdate tu)
+  class TimeslotUpdateHandler implements NewObjectListener
   {
-    summarizeTimeslot(tu);
+
+    @Override
+    public void handleNewObject (Object thing)
+    {
+      summarizeTimeslot((TimeslotUpdate)thing);
+    }
   }
 }

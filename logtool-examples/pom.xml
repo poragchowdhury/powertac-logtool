@@ -37,6 +37,12 @@
       <version>${jopt-simple.version}</version>
     </dependency>
 
+	<dependency>
+        <groupId>commons-lang</groupId>
+        <artifactId>commons-lang</artifactId>
+        <version>2.4</version>
+    </dependency>
+
     <!-- This doesn't seem to be needed?
     <dependency>
       <groupId>org.springframework</groupId>

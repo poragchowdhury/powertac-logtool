@@ -69,7 +69,7 @@ import org.powertac.common.BankTransaction;
  *
  * @author John Collins
  */
-public class MktPriceStats extends LogtoolContext implements Analyzer {
+public class GameDecomposer extends LogtoolContext implements Analyzer {
 //	static private Logger log = Logger.getLogger(MktPriceStats.class.getName());
 
 	// service references
@@ -85,7 +85,7 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 	private TreeMap<Integer, SimulationDataPerTimeSlot> marketData;
 	TreeMap<Integer, Integer> orderbookCounter = new TreeMap<Integer, Integer>();
 	private int counter = 0;
-	private long[] brokers = new long[12];
+	private double[] brokers = new double[12];
 	private String[] brokernames = new String[12];
 	int brokerCounter = 0;
 
@@ -107,7 +107,7 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 	 */
 	public static void main(String[] args) {
 		System.out.println("I am running");
-		new MktPriceStats().cli(args);
+		new GameDecomposer().cli(args);
 	}
 
 	/**
@@ -170,25 +170,6 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 	 */
 	@Override
 	public void report() {
-		SimulationDataPerTimeSlot yesterdayData;
-		SimulationDataPerTimeSlot prevOneWeekData;
-		SimulationDataPerTimeSlot prevHourData;
-
-		//SimulationDataPerTimeSlot yesterdayAvg;
-
-		double averageClearingPrice[] = new double[24];
-		double yesterdayAvg[] = new double[24];
-		double previousdayAvg = 0.0;
-		double overallNet = 0.0;
-		double overallMktNet = 0.0;
-		double overallBalNet = 0.0;
-		double overallDistNet = 0.0;
-		double overallTariffNet = 0.0;
-		double overallBankNet = 0.0;
-		double overallGain = 0.0;
-		double overallCost = 0.0;
-		double overallCapacityTransaction = 0.0;
-
 		double arroverallMktNet[] = new double[12];
 		double arroverallBalNet[] = new double[12];
 		double arroverallDistNet[] = new double[12];
@@ -196,78 +177,20 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 		double arroverallBankNet[] = new double[12];
 		double arroverallCapacityTransaction[] = new double[12];
 
-		double arroverallGain[] = new double[12];
-		double arroverallCost[] = new double[12];
-
+		double [] arrTOTenergyBought = new double[12];
+		double [] arrTOTenergySold = new double[12];
+		double [] arrTOTnetEnergy = new double[12];
+		double [] arrTOTnetPrice = new double[12];
+		double [] arrTOTmarketCost = new double[12];
+		double [] arrTOTmarketGain = new double[12];
+		
 		double arroverallNet[] = new double[12];
+		double cashposition[] = new double[12];
 
-
-		double cashposition = 0.0;
-		double temp = 0.0;
 		for (Map.Entry<Integer, SimulationDataPerTimeSlot> entry : marketData
 				.entrySet()) {
-			String delim = "";
-			Integer timeslot = entry.getKey();
+
 			SimulationDataPerTimeSlot trades = entry.getValue();
-
-			if(timeslot > 360){
-				prevHourData = marketData.get(timeslot-1);
-			}
-			else {
-				prevHourData = new SimulationDataPerTimeSlot();
-			}
-
-			if (timeslot-24 > 360)
-			{
-				yesterdayData = marketData.get(timeslot-24);
-
-				for(int i = 0; i < 24; i++) {
-					yesterdayAvg[i] += marketData.get(timeslot-24).arrClearingPrices[i];
-				}
-
-				for(int i = 0; i < 24; i++) {
-					yesterdayAvg[i] /= 24;
-				}
-				for (int j = 0; j < 24; j++) {
-					previousdayAvg += yesterdayAvg[j];
-				}
-				previousdayAvg /= 24;
-			}
-			else {
-				yesterdayData = new SimulationDataPerTimeSlot();
-			}
-
-			if ( timeslot-(24*7) > 360){
-				prevOneWeekData = marketData.get((timeslot-(24*7)));
-
-				for(int i = 0; i < 7; i++){
-					for(int j = 0; j < 24; j++)
-					{
-						averageClearingPrice[j] += marketData.get((timeslot-(24*(i+1)))).arrClearingPrices[j];
-					}
-				}
-				for(int j = 0; j < 24; j++)
-				{
-					averageClearingPrice[j] /= 7;
-				}
-
-			}
-			else {
-				prevOneWeekData = new SimulationDataPerTimeSlot();
-			}
-
-			overallMktNet += trades.netPrice;
-			overallBalNet += trades.netPriceB;
-			overallDistNet += trades.netDistributionFee;
-			overallBankNet += trades.bankNet;
-			overallTariffNet += trades.tariffNetPrice;
-			overallCapacityTransaction += trades.capacityTransaction;
-
-			overallGain += trades.marketGain + trades.bankGain + trades.tariffGain + trades.balancingGain;
-			overallCost += trades.marketCost + trades.bankCost + trades.tariffCost + trades.balancingCost + trades.distributionCost + trades.capacityTransaction;
-
-			overallNet += trades.netDistributionFee + trades.bankNet + trades.netPrice + trades.netPriceB + trades.tariffNetPrice + trades.capacityTransaction;
-
 
 			for(int i = 1; i <= numberofbrokers; i++){
 				arroverallMktNet[i] += trades.market[i];
@@ -276,79 +199,39 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 				arroverallBankNet[i] += trades.bank[i];
 				arroverallTariffNet[i] += trades.tariff[i];
 				arroverallCapacityTransaction[i] += trades.arrCapacityTransaction[i];
-			}
-
-			if(trades.cashPosition != 0)
-				cashposition = trades.cashPosition;
-			//System.out.println("report cashpostion " + cashposition + " timeslot " + timeslot);
-			// if (trades.length != 24)
-			// log.error("short array " + trades.length);
-			// for (int i = 0; i < trades.length; i++) {
-			//for (int i = 0; i < brokers.length; i++) {
-
-				if (null == trades) {
-					output.print(delim + "[0.0 0.0]");
-				}
-				else {
-
-					//if(trades.arrClearingPrices[i] != 0)
-					{
-					/*	output.format("%d,%d,%d,%d,%d,%d,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f",
-								4,trades.day_date, trades.month_date, trades.day,trades.hour, i,
-								trades.temp, trades.wfTemp[i+1], trades.cloudCoverage, trades.wfCloudCover[i+1],
-								trades.windDirection, trades.wfWindDir[i+1], trades.windSpeed, trades.wfWindSpeed[i+1], trades.energyCleared,
-					 			prevOneWeekData.arrClearingPrices[i], yesterdayData.arrClearingPrices[i], averageClearingPrice[i],
-								prevHourData.arrClearingPrices[i], previousdayAvg, trades.arrClearingPrices[i]); */
-
-//								output.format("%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f",
-//								overallGain, overallCost,
-//								trades.marketGain, trades.bankGain, trades.tariffGain, trades.balancingGain,
-//								trades.marketCost, trades.bankCost, trades.tariffCost, trades.balancingCost, trades.distributionCost);
-//
-//						output.format("%.2f %.2f %.2f %.2f %.2f %.2f",
-//								trades.arrCapacityTransaction[1], trades.arrCapacityTransaction[2], trades.arrCapacityTransaction[3],
-//								trades.arrCapacityTransaction[4], trades.arrCapacityTransaction[5],  trades.arrCapacityTransaction[6]);
-//
-
-//						output.format("%.2f %.2f %.2f %.2f %.2f ",
-//								trades.market[1], trades.market[2], trades.market[3],
-//								trades.market[4], trades.market[5]);
-
-//						output.format("%.2f %.2f %.2f %.2f %.2f ",
-//								trades.tariff[1], trades.tariff[2], trades.tariff[3],
-//								trades.tariff[4], trades.tariff[5]);
-					/*	output.format("%.2f %.2f %.2f %.2f %.2f ",
-								trades.distribution[1], trades.distribution[2], trades.distribution[3],
-								trades.distribution[4], trades.distribution[5]);
-						output.format("%.2f %.2f %.2f %.2f %.2f ",
-								trades.balancing[1], trades.balancing[2], trades.balancing[3],
-								trades.balancing[4], trades.balancing[5]);
-						output.format("%.2f %.2f %.2f %.2f %.2f ",
-								trades.bank[1], trades.bank[2], trades.bank[3],
-								trades.bank[4], trades.bank[5]); */
-					}
-				//}
-
-				//output.println();
+				
+				arrTOTenergyBought[i] += trades.arrenergyBought[i];
+				arrTOTenergySold[i] += trades.arrenergySold[i];
+				arrTOTmarketCost[i] += trades.arrmarketCost[i];
+				arrTOTmarketGain[i] += trades.arrmarketGain[i];
+				arrTOTnetEnergy[i] += trades.arrnetEnergy[i];
+				arrTOTnetPrice[i] += trades.arrnetPrice[i];
+				
+				
+				if(trades.arrcashPosition[i] != 0)
+					cashposition[i] = trades.arrcashPosition[i];
 			}
 		}
-		System.out.println("Cash postion " + cashposition + " Net account balance =" + overallNet);
-		output.format("Broker, Wholesale , Tariff, Balancing, Capacity, Bank, Distribution, Overall Balance");
-		output.println();
+		
+		output.format("Broker, Wholesale, Tariff, Balancing, Capacity, Bank, Distribution, OverallBalance, CashPosition,"
+				+ "TotEnrgVolBuy,TotEnrgVolSell,TotWSCost,TotWSGain,UnitCost,UnitGain,NetVOL,<->MyNetVol,NetPrice,<->MyNetPrice"
+				+ "\n");
 		for(int i = 1; i <= numberofbrokers; i++){
 			arroverallNet[i] += arroverallMktNet[i] + arroverallBalNet[i] + arroverallDistNet[i] +
 					arroverallBankNet[i] + arroverallTariffNet[i] + arroverallCapacityTransaction[i];
 
-			output.format(brokernames[i] + ", " + "%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f",
-				arroverallMktNet[i], arroverallTariffNet[i], arroverallBalNet[i], arroverallCapacityTransaction[i], arroverallBankNet[i], arroverallDistNet[i], arroverallNet[i]);
-			output.println();
-
-			System.out.println(brokernames[i] + " : Wholesale " + arroverallMktNet[i] + " Tariff " +  arroverallTariffNet[i] + " Balancing " + arroverallBalNet[i] + " Capacity " + arroverallCapacityTransaction[i] + " Bank " + arroverallBankNet[i] + " Distribution " + arroverallDistNet[i]
-					+ " Overall Net " + arroverallNet[i]);
+			double mycalnetWholesalePrice = arrTOTmarketGain[i] + arrTOTmarketCost[i];   
+			double mycalnetWholesaleEnergy = arrTOTenergyBought[i] - arrTOTenergySold[i];
+			
+			output.format(brokernames[i] + ", " + "%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f,"
+					+ "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f"
+					+ "\n",
+				arroverallMktNet[i], arroverallTariffNet[i], arroverallBalNet[i], arroverallCapacityTransaction[i], arroverallBankNet[i], arroverallDistNet[i], arroverallNet[i], cashposition[i],
+				arrTOTenergyBought[i], arrTOTenergySold[i],arrTOTmarketCost[i],arrTOTmarketGain[i],arrTOTmarketCost[i]/arrTOTenergyBought[i],arrTOTmarketGain[i]/arrTOTenergySold[i],arrTOTnetEnergy[i],mycalnetWholesaleEnergy,arrTOTnetPrice[i],mycalnetWholesalePrice);
 		}
 		output.close();
 		debug.close();
-
+		System.out.println("Finished");
 	}
 
 	// -----------------------------------
@@ -385,7 +268,7 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 		public void handleNewObject(Object comp){
 			// Working System.out.println("2");
 			Competition competition = (Competition) comp;
-			MktPriceStats.numberofbrokers = competition.getBrokers().size();
+			GameDecomposer.numberofbrokers = competition.getBrokers().size();
 			System.out.println("Number of brokers : " + competition.getBrokers().size() + " Simulation " + competition.toString());
 
 		}
@@ -443,11 +326,6 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 
 				}
 
-				// System.out.println("In the orderbook");
-
-				//System.out.println("Orderbook timeslotSerial : " + timeslotSerial);
-				// System.out.println("Clearingprice : " +
-				// ob.getClearingPrice());
 				if (ob.getClearingPrice() == null) {
 					cmt.lastclearingPrice = 0;
 
@@ -590,30 +468,33 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 			Broker broker = (Broker) thing;
 			String username = broker.getUsername().toUpperCase();
 			System.out.print(broker.getUsername() + " ");
-		//	System.out.println(broker.getId());
 			brokerCounter++;
 			if (username.equalsIgnoreCase("SPOT")) {
 				brokerID = broker.getId();
 			}
 
-
-				output.println(username + " ");
-				//output.println();
-				if (broker.getUsername().isEmpty()) {
-					output.println();
-				}
-
-
+			output.println(username + " ");
+			//output.println();
+			if (broker.getUsername().isEmpty()) {
+				output.println();
+			}
 
 			brokers[brokerCounter] = broker.getId();
 			brokernames[brokerCounter] = username;
 
 			System.out.println(brokers[brokerCounter] + " " + brokerCounter);
 			numberofbrokers = brokerCounter;
-
 		}
 	}
 
+	public int getBrokerIndex(double brokerid){
+		for(int i = 1; i <= numberofbrokers; i++){
+			if(brokers[i] == brokerid)
+				return i;
+		}
+		return -1;
+	}
+	
 	class MarketTransactionHandler implements NewObjectListener {
 
 		@Override
@@ -630,50 +511,39 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 				cmt = new SimulationDataPerTimeSlot();
 
 			}
-			if (mt.getBroker().getId() == brokerID) {
+			double brokerid = mt.getBroker().getId();
+			int brokerIndex = getBrokerIndex(brokerid);
+			
+			if(brokerIndex > 0){
+				
+				if((mt.getMWh() > 0 && mt.getPrice() > 0) || (mt.getMWh() < 0 && mt.getPrice() < 0))
+					System.out.println("mt.getPrice() ->" + mt.getPrice() + " mt.getMWh() -> " + mt.getMWh());
+					
 				if (mt.getMWh() >= 0) {
 					// bought energy
-					cmt.energyBought += mt.getMWh();
+					cmt.arrenergyBought[brokerIndex] += Math.abs(mt.getMWh());
 				} else {
 					// sold energy
-					cmt.energySold += mt.getMWh();
+					cmt.arrenergySold[brokerIndex] += Math.abs(mt.getMWh());
 				}
-
-				if (mt.getPrice() >= 0) {
-					// sold price i.e. deposited into brokers account
-					cmt.soldprice += mt.getPrice();
-				} else {
-					// bought price i.e. paid from brokers account
-					cmt.boughtprice += mt.getPrice();
-				}
-
+	
 				// net calculation
-				cmt.netEnergy += mt.getMWh();
-				cmt.netPrice += (mt.getPrice() * Math.abs(mt.getMWh()));
+				cmt.arrnetEnergy[brokerIndex] += mt.getMWh();
+				cmt.arrnetPrice[brokerIndex] += (mt.getPrice() * Math.abs(mt.getMWh()));
+				
 				if ((mt.getPrice() * Math.abs(mt.getMWh())) >= 0) {
-					cmt.marketGain += (mt.getPrice() * Math.abs(mt.getMWh()));
+					cmt.arrmarketGain[brokerIndex] += (mt.getPrice() * Math.abs(mt.getMWh()));
 				}
 				else {
-					cmt.marketCost += ((mt.getPrice() * Math.abs(mt.getMWh())) * -1);
+					cmt.arrmarketCost[brokerIndex] += ((mt.getPrice() * Math.abs(mt.getMWh())));
 				}
-
-				//System.out.println("timeslot " + target + " transaction price " + mt.getPrice());
-
-
-
-				cmt.timeslotIndex = target;
-				// trade count
-				cmt.count += 1;
+	
+				cmt.market[brokerIndex] += (mt.getPrice() * Math.abs(mt.getMWh()));
+				
+				marketData.put(target, cmt);
 			}
-			for(int i =0; i< brokers.length; i++){
-				if((mt.getBroker().getId() == brokers[i])){
-					cmt.market[i] += (mt.getPrice() * Math.abs(mt.getMWh()));
-				}
-			}
-			marketData.put(target, cmt);
 		}
 	}
-
 
 	class BalancingTransactionHandler implements NewObjectListener {
 		@Override
@@ -682,12 +552,17 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 			if (ignoreCount > 0) {
 				return;
 			}
+			
 			BalancingTransaction bt = (BalancingTransaction) thing;
+			
+			double brokerid = bt.getBroker().getId();
+			int brokerIndex = getBrokerIndex(brokerid);
+			
 			int target = bt.getPostedTimeslot().getSerialNumber();
 			SimulationDataPerTimeSlot cmt = marketData.get(target);
+			
 			if (null == cmt) {
 				cmt = new SimulationDataPerTimeSlot();
-
 			}
 			if (bt.getBroker().getId() == brokerID) {
 				if (bt.getCharge() > 0) {
@@ -703,13 +578,10 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 				else {
 					cmt.balancingCost += bt.getCharge() * -1;
 				}
-
-
 			}
-			for(int i =0; i< brokers.length; i++){
-				if((bt.getBroker().getId() == brokers[i])){
-					cmt.balancing[i] += bt.getCharge();
-				}
+			
+			if(brokerIndex > 0){
+				cmt.balancing[brokerIndex] += bt.getCharge();
 			}
 			marketData.put(target, cmt);
 
@@ -725,6 +597,10 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 				return;
 			}
 			DistributionTransaction dt = (DistributionTransaction) thing;
+			
+			double brokerid = dt.getBroker().getId();
+			int brokerIndex = getBrokerIndex(brokerid);
+			
 			int target = dt.getPostedTimeslot().getSerialNumber();
 			SimulationDataPerTimeSlot cmt = marketData.get(target);
 			if (null == cmt) {
@@ -735,10 +611,9 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 				//System.out.println(cmt.netDistributionFee);
 				marketData.put(target, cmt);
 			}
-			for(int i =0; i< brokers.length; i++){
-				if((dt.getBroker().getId() == brokers[i])){
-					cmt.distribution[i] += dt.getCharge();
-				}
+			
+			if(brokerIndex > 0){
+				cmt.distribution[brokerIndex] += dt.getCharge();
 			}
 			marketData.put(target, cmt);
 		}
@@ -753,6 +628,10 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 				return;
 			}
 			TariffTransaction tt = (TariffTransaction) thing;
+			
+			double brokerid = tt.getBroker().getId();
+			int brokerIndex = getBrokerIndex(brokerid);
+			
 			int target = tt.getPostedTimeslot().getSerialNumber();
 			SimulationDataPerTimeSlot cmt = marketData.get(target);
 			if (null == cmt) {
@@ -768,15 +647,14 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 					cmt.tariffCost += tt.getCharge() * -1;
 				}
 
-					cmt.tariffNetPrice += tt.getCharge();
+				cmt.tariffNetPrice += tt.getCharge();
 			}
-			for(int i =0; i< brokers.length; i++){
-				if((tt.getBroker().getId() == brokers[i])){
-					cmt.tariff[i] += tt.getCharge();
-					//System.out.println("Tariff transaction : " + cmt.tariff[i] + " brokerid " + brokers[i] + " timeslot " + target);
-				}
+			
+			if((brokerIndex > 0)){
+				cmt.tariff[brokerIndex] += tt.getCharge();
+				//System.out.println("Tariff transaction : " + cmt.tariff[i] + " brokerid " + brokers[i] + " timeslot " + target);
 			}
-
+		
 			marketData.put(target, cmt);
 		}
 	}
@@ -788,13 +666,17 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 				return;
 			}
 			CashPosition cp = (CashPosition) thing;
-			if (cp.getBroker().getId() == brokerID){
+			
+			double brokerid = cp.getBroker().getId();
+			int brokerIndex = getBrokerIndex(brokerid);
+			
+			if(brokerIndex > 0){
 				int target = cp.getPostedTimeslot().getSerialNumber();
 				SimulationDataPerTimeSlot cmt = marketData.get(target);
 				if (null == cmt) {
 					cmt = new SimulationDataPerTimeSlot();
 				}
-				cmt.cashPosition = cp.getBalance();
+				cmt.arrcashPosition[brokerIndex] = cp.getBalance();
 				//System.out.println("Cashposition " + cp.getBalance() + " at timeslot " + target);
 				marketData.put(target, cmt);
 			}
