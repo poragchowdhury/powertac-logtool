@@ -26,6 +26,8 @@ import java.util.TreeMap;
 
 
 
+
+
 //import org.apache.log4j.Logger;
 import org.joda.time.Instant;
 import org.powertac.common.Broker;
@@ -257,16 +259,16 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 			}
 
 			overallMktNet += trades.netPrice;
-			overallBalNet += trades.netPriceB;
+			//overallBalNet += trades.netPriceB;
 			overallDistNet += trades.netDistributionFee;
 			overallBankNet += trades.bankNet;
 			overallTariffNet += trades.tariffNetPrice;
 			overallCapacityTransaction += trades.capacityTransaction;
 
-			overallGain += trades.marketGain + trades.bankGain + trades.tariffGain + trades.balancingGain;
-			overallCost += trades.marketCost + trades.bankCost + trades.tariffCost + trades.balancingCost + trades.distributionCost + trades.capacityTransaction;
+			//overallGain += trades.marketGain + trades.bankGain + trades.tariffGain + trades.balancingGain;
+			//overallCost += trades.marketCost + trades.bankCost + trades.tariffCost + trades.balancingCost + trades.distributionCost + trades.capacityTransaction;
 
-			overallNet += trades.netDistributionFee + trades.bankNet + trades.netPrice + trades.netPriceB + trades.tariffNetPrice + trades.capacityTransaction;
+			//overallNet += trades.netDistributionFee + trades.bankNet + trades.netPrice + trades.netPriceB + trades.tariffNetPrice + trades.capacityTransaction;
 
 
 			for(int i = 1; i <= numberofbrokers; i++){
@@ -581,38 +583,33 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 
 
 	// -----------------------------------
-	// catch Broker events
-	class BrokerHandler implements NewObjectListener {
+		// catch Broker events
+		class BrokerHandler implements NewObjectListener {
 
-		@Override
-		public void handleNewObject(Object thing) {
-			// Working System.out.println("7");
-			Broker broker = (Broker) thing;
-			String username = broker.getUsername().toUpperCase();
-			System.out.print(broker.getUsername() + " ");
-		//	System.out.println(broker.getId());
-			brokerCounter++;
-			if (username.equalsIgnoreCase("SPOT")) {
-				brokerID = broker.getId();
-			}
-
-
-				output.println(username + " ");
-				//output.println();
-				if (broker.getUsername().isEmpty()) {
-					output.println();
+			@Override
+			public void handleNewObject(Object thing) {
+				// Working System.out.println("7");
+				Broker broker = (Broker) thing;
+				String username = broker.getUsername().toUpperCase();
+				System.out.print(broker.getUsername() + " ");
+				brokerCounter++;
+				if (username.equalsIgnoreCase("SPOT")) {
+					brokerID = broker.getId();
 				}
 
+				//output.println(username + " ");
+				//output.println();
+				if (broker.getUsername().isEmpty()) {
+					//output.println();
+				}
 
+				brokers[brokerCounter] = broker.getId();
+				brokernames[brokerCounter] = username;
 
-			brokers[brokerCounter] = broker.getId();
-			brokernames[brokerCounter] = username;
-
-			System.out.println(brokers[brokerCounter] + " " + brokerCounter);
-			numberofbrokers = brokerCounter;
-
+				System.out.println(brokers[brokerCounter] + " " + brokerCounter);
+				numberofbrokers = brokerCounter;
+			}
 		}
-	}
 
 	class MarketTransactionHandler implements NewObjectListener {
 
@@ -682,38 +679,45 @@ public class MktPriceStats extends LogtoolContext implements Analyzer {
 			if (ignoreCount > 0) {
 				return;
 			}
+			
 			BalancingTransaction bt = (BalancingTransaction) thing;
+			
+			double brokerid = bt.getBroker().getId();
+			int brokerIndex = getBrokerIndex(brokerid);
+			
 			int target = bt.getPostedTimeslot().getSerialNumber();
 			SimulationDataPerTimeSlot cmt = marketData.get(target);
+			
 			if (null == cmt) {
 				cmt = new SimulationDataPerTimeSlot();
-
 			}
-			if (bt.getBroker().getId() == brokerID) {
+			if (brokerIndex > 0) {
 				if (bt.getCharge() > 0) {
-					cmt.soldPriceB += bt.getCharge();
+					cmt.soldPriceB[brokerIndex] += bt.getCharge();
 				}
 				else {
-					cmt.boughtPriceB += bt.getCharge();
+					cmt.boughtPriceB[brokerIndex] += bt.getCharge();
 				}
-				cmt.netPriceB += bt.getCharge();
-				if (bt.getCharge() >= 0) {
-					cmt.balancingGain += bt.getCharge();
+				cmt.balancing[brokerIndex] += bt.getCharge();
+				cmt.balancingKWH[brokerIndex] += bt.getKWh();
+				if (bt.getKWh() >= 0) {
+					cmt.balEngSurpls[brokerIndex] += bt.getCharge();
 				}
 				else {
-					cmt.balancingCost += bt.getCharge() * -1;
-				}
-
-
-			}
-			for(int i =0; i< brokers.length; i++){
-				if((bt.getBroker().getId() == brokers[i])){
-					cmt.balancing[i] += bt.getCharge();
+					cmt.balEngDefct[brokerIndex] += bt.getCharge() * -1;
 				}
 			}
+			
 			marketData.put(target, cmt);
 
 		}
+	}
+	public int getBrokerIndex(double brokerid){
+		for(int i = 1; i <= numberofbrokers; i++){
+			if(brokers[i] == brokerid)
+				return i;
+		}
+		return -1;
 	}
 
 	class DistributionTransactionHandler implements NewObjectListener {

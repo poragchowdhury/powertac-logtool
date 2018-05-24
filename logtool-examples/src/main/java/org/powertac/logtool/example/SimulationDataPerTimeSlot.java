@@ -27,9 +27,13 @@ class SimulationDataPerTimeSlot {
 	double soldprice;
 	double marketOverallBalance;
 	int count;
-	double soldPriceB;
-	double boughtPriceB;
-	double netPriceB;
+	double soldPriceB [] = new double[12];
+	double boughtPriceB [] = new double[12];
+	double netPriceB [] = new double[12];
+	double balEngDefct [] = new double[12];
+	double balEngSurpls [] = new double[12];
+	double balancingKWH [] = new double[12]; 
+	
 	double netDistributionFee;
 	double tariffGain;
 	double tariffNetPrice;
@@ -54,10 +58,9 @@ class SimulationDataPerTimeSlot {
 	double bankGain;
 	double tariffCost;
 	double tariffGains;
-	double balancingCost;
-	double balancingGain;
 	double market[] = new double[12];
 	double tariff[] = new double[12];
+	double tariffUsage[] = new double[12];
 	double distribution[] = new double[12];
 	double balancing[] = new double[12];
 	double bank[] = new double[12];
@@ -82,9 +85,6 @@ class SimulationDataPerTimeSlot {
 		netPrice = 0.0;
 		marketOverallBalance = 0.0;
 		count = 0;
-		soldPriceB = 0.0;
-		boughtPriceB = 0.0;
-		netPriceB = 0.0;
 		netDistributionFee = 0.0;
 		tariffNetPrice = 0.0;
 		cashPosition = 0.0;
@@ -105,8 +105,6 @@ class SimulationDataPerTimeSlot {
 		bankGain = 0.0;
 		tariffCost = 0.0;
 		tariffGain = 0.0;
-		balancingCost = 0.0;
-		balancingGain = 0.0;
 		capacityTransaction = 0;
 	}
 }

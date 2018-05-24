@@ -25,7 +25,8 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+//import org.apache.commons.lang.StringUtils;
 //import org.apache.log4j.Logger;
 import org.joda.time.Instant;
 import org.powertac.common.Broker;
@@ -197,8 +198,8 @@ public class WholesaleMarketStats extends LogtoolContext implements Analyzer {
 			Integer timeslot = entry.getKey();
 			SimulationDataPerTimeSlot trades = entry.getValue();
 			
-			overallMktNet += trades.netPrice;
-			overallBalNet += trades.netPriceB;
+			//overallMktNet += trades.netPrice;
+			//overallBalNet += trades.netPriceB;
 			
 			if (null == trades) {
 				output.print(delim + "[0.0 0.0]");
@@ -452,43 +453,51 @@ public class WholesaleMarketStats extends LogtoolContext implements Analyzer {
 
 
 	class BalancingTransactionHandler implements NewObjectListener {
-
+		@Override
 		public void handleNewObject(Object thing) {
+			// Working System.out.println("9");
 			if (ignoreCount > 0) {
 				return;
 			}
+			
 			BalancingTransaction bt = (BalancingTransaction) thing;
+			
+			double brokerid = bt.getBroker().getId();
+			int brokerIndex = getBrokerIndex(brokerid);
+			
 			int target = bt.getPostedTimeslot().getSerialNumber();
 			SimulationDataPerTimeSlot cmt = marketData.get(target);
+			
 			if (null == cmt) {
 				cmt = new SimulationDataPerTimeSlot();
-
 			}
-			if (bt.getBroker().getId() == brokerID) {			
+			if (brokerIndex > 0) {
 				if (bt.getCharge() > 0) {
-					cmt.soldPriceB += bt.getCharge();
+					cmt.soldPriceB[brokerIndex] += bt.getCharge();
 				}
 				else {
-					cmt.boughtPriceB += bt.getCharge();
+					cmt.boughtPriceB[brokerIndex] += bt.getCharge();
 				}
-				cmt.netPriceB += bt.getCharge();
-				if (bt.getCharge() >= 0) {
-					cmt.balancingGain += bt.getCharge();
+				cmt.balancing[brokerIndex] += bt.getCharge();
+				cmt.balancingKWH[brokerIndex] += bt.getKWh();
+				if (bt.getKWh() >= 0) {
+					cmt.balEngSurpls[brokerIndex] += bt.getCharge();
 				}
 				else {
-					cmt.balancingCost += bt.getCharge() * -1;
+					cmt.balEngDefct[brokerIndex] += bt.getCharge() * -1;
 				}
+			}
 			
-				
-			}
-			for(int i =0; i< brokers.size(); i++){ 
-				if((bt.getBroker().getId() == brokers.get(i))){
-					cmt.balancing[i] += bt.getCharge();
-				}
-			}
 			marketData.put(target, cmt);
-		
+
 		}
+	}
+	public int getBrokerIndex(double brokerid){
+		for(int i = 1; i <= numberofbrokers; i++){
+			//if(brokers[i] == brokerid)
+			//	return i;
+		}
+		return -1;
 	}
 			
 	class TimeslotHandler implements NewObjectListener {

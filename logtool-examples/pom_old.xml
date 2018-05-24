@@ -8,7 +8,7 @@
   <parent>
     <groupId>org.powertac</groupId>
     <artifactId>powertac-server</artifactId>
-    <version>1.5.1-SNAPSHOT</version>
+    <version>1.5.0-SNAPSHOT</version>
     <relativePath />
   </parent>
 
@@ -17,38 +17,45 @@
   simulation server</description>
   <packaging>jar</packaging>
 
-  <properties>
-    <johnzon.version>1.1.0</johnzon.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <exec.args></exec.args>
-  </properties>
-
   <dependencies>
+	<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+	<dependency>
+    	<groupId>org.apache.commons</groupId>
+    	<artifactId>commons-lang3</artifactId>
+    	<version>3.0</version>
+	</dependency>
 
     <dependency>
       <groupId>org.powertac</groupId>
       <artifactId>logtool-core</artifactId>
-      <version>1.5.1-SNAPSHOT</version>
+      <version>1.5.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
       <groupId>org.powertac</groupId>
       <artifactId>balancing-market</artifactId>
-      <version>1.5.1-SNAPSHOT</version>
+      <version>1.5.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
       <groupId>net.sf.jopt-simple</groupId>
       <artifactId>jopt-simple</artifactId>
-      </dependency>
-
-    <dependency>
-      <groupId>org.apache.johnzon</groupId>
-      <artifactId>johnzon-core</artifactId>
-      <version>${johnzon.version}</version>
+      <version>${jopt-simple.version}</version>
     </dependency>
 
+    <!-- This doesn't seem to be needed?
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+    </dependency>
+    -->
+
   </dependencies>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <exec.args></exec.args>
+  </properties>
 
   <!-- <plugins>
     <plugin>

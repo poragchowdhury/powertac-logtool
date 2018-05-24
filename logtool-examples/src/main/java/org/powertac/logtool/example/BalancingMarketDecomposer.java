@@ -26,7 +26,6 @@ import java.util.TreeMap;
 
 
 
-
 //import org.apache.log4j.Logger;
 import org.joda.time.Instant;
 import org.powertac.common.Broker;
@@ -70,7 +69,7 @@ import org.powertac.common.BankTransaction;
  *
  * @author John Collins
  */
-public class GameDecomposer extends LogtoolContext implements Analyzer {
+public class BalancingMarketDecomposer extends LogtoolContext implements Analyzer {
 //	static private Logger log = Logger.getLogger(MktPriceStats.class.getName());
 
 	// service references
@@ -108,7 +107,7 @@ public class GameDecomposer extends LogtoolContext implements Analyzer {
 	 */
 	public static void main(String[] args) {
 		System.out.println("I am running");
-		new GameDecomposer().cli(args);
+		new BalancingMarketDecomposer().cli(args);
 	}
 
 	/**
@@ -135,20 +134,20 @@ public class GameDecomposer extends LogtoolContext implements Analyzer {
 		timeService = (TimeService) getBean("timeService");
 		brokerRepo = (BrokerRepo) SpringApplicationContext
 				.getBean("brokerRepo");
-		registerNewObjectListener(new TariffTransactionHandler(), TariffTransaction.class);
-		registerNewObjectListener(new CapacityTransactionHandler(), CapacityTransaction.class);
+		//registerNewObjectListener(new TariffTransactionHandler(), TariffTransaction.class);
+		//registerNewObjectListener(new CapacityTransactionHandler(), CapacityTransaction.class);
 		registerNewObjectListener(new CompetitionHandler(), Competition.class);
 		registerNewObjectListener(new BrokerHandler(), Broker.class);
 		registerNewObjectListener(new TimeslotUpdateHandler(), TimeslotUpdate.class);
-		registerNewObjectListener(new MarketTransactionHandler(), MarketTransaction.class);
+		//registerNewObjectListener(new MarketTransactionHandler(), MarketTransaction.class);
 		registerNewObjectListener(new BalancingTransactionHandler(), BalancingTransaction.class);
 		registerNewObjectListener(new TimeslotHandler(), Timeslot.class);
-		registerNewObjectListener(new WeatherReportHandler(), WeatherReport.class);
-		registerNewObjectListener(new OrderbookHandler(), Orderbook.class);
-		registerNewObjectListener(new WeatherForecastHandler(), WeatherForecast.class);
-		registerNewObjectListener(new DistributionTransactionHandler(), DistributionTransaction.class);
-		registerNewObjectListener(new CashPositionHandler(), CashPosition.class);
-		registerNewObjectListener(new BankTransactionHandler(), BankTransaction.class);
+		//registerNewObjectListener(new WeatherReportHandler(), WeatherReport.class);
+		//registerNewObjectListener(new OrderbookHandler(), Orderbook.class);
+		//registerNewObjectListener(new WeatherForecastHandler(), WeatherForecast.class);
+		//registerNewObjectListener(new DistributionTransactionHandler(), DistributionTransaction.class);
+		//registerNewObjectListener(new CashPositionHandler(), CashPosition.class);
+		//registerNewObjectListener(new BankTransactionHandler(), BankTransaction.class);
 
 
 		ignoreCount = ignoreInitial;
@@ -171,68 +170,44 @@ public class GameDecomposer extends LogtoolContext implements Analyzer {
 	 */
 	@Override
 	public void report() {
-		double arroverallMktNet[] = new double[12];
-		double arroverallBalNet[] = new double[12];
-		double arroverallDistNet[] = new double[12];
-		double arroverallTariffNet[] = new double[12];
-		double arroverallBankNet[] = new double[12];
-		double arroverallCapacityTransaction[] = new double[12];
-
-		double [] arrTOTenergyBought = new double[12];
-		double [] arrTOTenergySold = new double[12];
-		double [] arrTOTnetEnergy = new double[12];
-		double [] arrTOTnetPrice = new double[12];
-		double [] arrTOTmarketCost = new double[12];
-		double [] arrTOTmarketGain = new double[12];
-		double [] arrTOTnetBalEnergy = new double[12];
-		double [] arrToTnetEngUsage = new double[12];
 		
-		double arroverallNet[] = new double[12];
-		double cashposition[] = new double[12];
-
+		double arroverallBalNet[] = new double[12];
+		double arroverallBalKWHNet[] = new double[12];
+		
+		output.format("Timeslot, ");
+		for(int i = 1; i <= numberofbrokers; i++)
+			output.format(brokernames[i]+"-KWH, ");
+		
+		output.format("imbalance, ");
+		
+		for(int i = 1; i <= numberofbrokers; i++)
+			output.format(brokernames[i]+"-$, ");
+		output.format("\n");
+		int ts = 360;
 		for (Map.Entry<Integer, SimulationDataPerTimeSlot> entry : marketData
 				.entrySet()) {
 
 			SimulationDataPerTimeSlot trades = entry.getValue();
 
+			output.format(ts + ", "); 
+			double imbalance = 0.00;
 			for(int i = 1; i <= numberofbrokers; i++){
-				arroverallMktNet[i] += trades.market[i];
-				arroverallBalNet[i] += trades.balancing[i];
-				arroverallDistNet[i] += trades.distribution[i];
-				arroverallBankNet[i] += trades.bank[i];
-				arroverallTariffNet[i] += trades.tariff[i];
-				arroverallCapacityTransaction[i] += trades.arrCapacityTransaction[i];
-				
-				arrTOTenergyBought[i] += trades.arrenergyBought[i];
-				arrTOTenergySold[i] += trades.arrenergySold[i];
-				arrTOTmarketCost[i] += trades.arrmarketCost[i];
-				arrTOTmarketGain[i] += trades.arrmarketGain[i];
-				arrTOTnetEnergy[i] += trades.arrnetEnergy[i];
-				arrTOTnetBalEnergy[i]+= trades.balancingKWH[i];
-				arrToTnetEngUsage[i] += trades.tariffUsage[i];
-				arrTOTnetPrice[i] += trades.arrnetPrice[i];
-				
-				
-				if(trades.arrcashPosition[i] != 0)
-					cashposition[i] = trades.arrcashPosition[i];
+				arroverallBalKWHNet[i] += trades.balancingKWH[i];
+				imbalance += trades.balancingKWH[i];
+				output.format(trades.balancingKWH[i] + ", ");
 			}
+			output.format(imbalance + ", "); 
+			for(int i = 1; i <= numberofbrokers; i++){
+				arroverallBalNet[i] += trades.balancing[i];
+				output.format(trades.balancing[i] + ", ");
+			}
+			output.format("\n");
+			ts++;
 		}
 		
-		output.format("Broker, Wholesale, Tariff, Balancing, Capacity, Bank, Distribution, OverallBalance, CashPosition,"
-				+ "TotEnrgVolBuy,TotEnrgVolSell,TotWSCost,TotWSGain,UnitCost,UnitGain,NetVOL,NetUsage,NetBalVol,<->MyNetVol,NetPrice,<->MyNetPrice"
-				+ "\n");
+		output.format("Broker, KWH, KWH, $, $ \n");
 		for(int i = 1; i <= numberofbrokers; i++){
-			arroverallNet[i] += arroverallMktNet[i] + arroverallBalNet[i] + arroverallDistNet[i] +
-					arroverallBankNet[i] + arroverallTariffNet[i] + arroverallCapacityTransaction[i];
-
-			double mycalnetWholesalePrice = arrTOTmarketGain[i] + arrTOTmarketCost[i];   
-			double mycalnetWholesaleEnergy = arrTOTenergyBought[i] - arrTOTenergySold[i];
-			
-			output.format(brokernames[i] + ", " + "%.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f,"
-					+ "%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f"
-					+ "\n",
-				arroverallMktNet[i], arroverallTariffNet[i], arroverallBalNet[i], arroverallCapacityTransaction[i], arroverallBankNet[i], arroverallDistNet[i], arroverallNet[i], cashposition[i],
-				arrTOTenergyBought[i], arrTOTenergySold[i],arrTOTmarketCost[i],arrTOTmarketGain[i],arrTOTmarketCost[i]/arrTOTenergyBought[i],arrTOTmarketGain[i]/arrTOTenergySold[i],arrTOTnetEnergy[i], arrToTnetEngUsage[i], arrTOTnetBalEnergy[i], mycalnetWholesaleEnergy,arrTOTnetPrice[i],mycalnetWholesalePrice);
+			output.format(brokernames[i] + ", KWH, " + "%.2f, $, %.2f\n", arroverallBalKWHNet[i], arroverallBalNet[i]);
 		}
 		output.close();
 		debug.close();
@@ -273,7 +248,7 @@ public class GameDecomposer extends LogtoolContext implements Analyzer {
 		public void handleNewObject(Object comp){
 			// Working System.out.println("2");
 			Competition competition = (Competition) comp;
-			GameDecomposer.numberofbrokers = competition.getBrokers().size();
+			BalancingMarketDecomposer.numberofbrokers = competition.getBrokers().size();
 			System.out.println("Number of brokers : " + competition.getBrokers().size() + " Simulation " + competition.toString());
 
 		}
@@ -513,15 +488,8 @@ public class GameDecomposer extends LogtoolContext implements Analyzer {
 			if (ignoreCount > 0) {
 				return; // nothing to do yet
 			}
-			
 			MarketTransaction mt = (MarketTransaction) thing;
-
-			//int target = mt.getPostedTimeslot().getSerialNumber();
-			//int now = timeslotRepo.getTimeslotIndex(timeService
-			//		.getCurrentTime());
-			
-			int target = mt.getTimeslotIndex();
-			
+			int target = mt.getPostedTimeslot().getSerialNumber();
 			SimulationDataPerTimeSlot cmt = marketData.get(target);
 
 			if (null == cmt) {
@@ -532,9 +500,6 @@ public class GameDecomposer extends LogtoolContext implements Analyzer {
 			int brokerIndex = getBrokerIndex(brokerid);
 			
 			if(brokerIndex > 0){
-				
-				//if(brokerid == brokers[2])
-				//	System.out.println("postedtimeslot " + target + " now " + now + " mt.gettimeSlot " + mt.getTimeslotIndex());
 				
 				if((mt.getMWh() > 0 && mt.getPrice() > 0) || (mt.getMWh() < 0 && mt.getPrice() < 0))
 					System.out.println("mt.getPrice() ->" + mt.getPrice() + " mt.getMWh() -> " + mt.getMWh());
@@ -606,7 +571,6 @@ public class GameDecomposer extends LogtoolContext implements Analyzer {
 		}
 	}
 
-
 	class DistributionTransactionHandler implements NewObjectListener {
 		@Override
 		public void handleNewObject(Object thing) {
@@ -657,6 +621,8 @@ public class GameDecomposer extends LogtoolContext implements Analyzer {
 				cmt = new SimulationDataPerTimeSlot();
 			}
 			if (tt.getBroker().getId() == brokerID){
+
+
 				if (tt.getCharge() >= 0) {
 					cmt.tariffGain += tt.getCharge();
 				}
@@ -669,7 +635,6 @@ public class GameDecomposer extends LogtoolContext implements Analyzer {
 			
 			if((brokerIndex > 0)){
 				cmt.tariff[brokerIndex] += tt.getCharge();
-				cmt.tariffUsage[brokerIndex] += tt.getKWh();
 				//System.out.println("Tariff transaction : " + cmt.tariff[i] + " brokerid " + brokers[i] + " timeslot " + target);
 			}
 		
@@ -738,7 +703,7 @@ public class GameDecomposer extends LogtoolContext implements Analyzer {
 	class TimeslotHandler implements NewObjectListener {
 
 		public void handleNewObject(Object thing) {
-			//System.out.println("14");
+			System.out.println("14");
 			if (ignoreCount > 0) {
 				return;
 			}
